@@ -19,20 +19,20 @@ rabbit.start
 channel = rabbit.create_channel
 RABBIT_EXCHANGE = channel.default_exchange
 
-NEW_FOLLOW = channel.queue('new_follow.user_data')
-NEW_TWEET = channel.queue('new_tweet.tweet_data')
+new_follow = channel.queue('new_follow.user_data')
+new_tweet = channel.queue('new_tweet.tweet_data')
+seed = channel.queue('follow.data.seed')
 FOLLOWER_IDS = channel.queue('new_tweet.follower_ids')
-SEED = channel.queue('follow.data.seed')
 
-NEW_FOLLOW.subscribe(block: false) do |delivery_info, properties, body|
+new_follow.subscribe(block: false) do |delivery_info, properties, body|
   parse_follow_data(JSON.parse(body))
 end
 
-NEW_FOLLOW.subscribe(block: false) do |delivery_info, properties, body|
+new_tweet.subscribe(block: false) do |delivery_info, properties, body|
   get_follower_ids(JSON.parse(body))
 end
 
-SEED.subscribe(block: false) do |delivery_info, properties, body|
+seed.subscribe(block: false) do |delivery_info, properties, body|
   REDIS.flushall
   JSON.parse(body).each { |follow| parse_follow_data(follow) }
 end
@@ -48,7 +48,6 @@ def parse_follow_data(body)
 
   REDIS.lpush("#{follower_id}:followee_ids", followee_id)
   REDIS.lpush("#{follower_id}:followee_handles", followee_handle)
-  puts body
 end
 
 def get_follower_ids(body)
@@ -57,7 +56,7 @@ def get_follower_ids(body)
 
   payload = {
     tweet_id: tweet_id,
-    follower_ids: REDIS.get("#{author_id}:follower_ids")
-  }
+    follower_ids: REDIS.lrange("#{author_id}:follower_ids", 0, -1)
+  }.to_json
   RABBIT_EXCHANGE.publish(payload, routing_key: FOLLOWER_IDS.name)
 end

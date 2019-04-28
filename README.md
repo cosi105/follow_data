@@ -14,7 +14,7 @@ Production deployment: https://nano-twitter-follow-data.herokuapp.com/
 | :------- | :--------- | :------ |:--
 | Subscribes to | `new_follow.user_data` | `{follower_id, follower_handle, followee_id, followee_handle}` | Adds `follower_handle` & `follower_id` to followee's chached follower ids & handles.</br> Adds `followee_handle` & `followee_id` to follower's cached followee ids & handles.
 | Subscribes to | `new_tweet.tweet_data` | `{author_id, tweet_id}` | Uses `author_id` to fetch the list of the author's `follower_id`s, adds it to payload with the `tweet_id`, then publishes it to `new_tweet.follower_ids`.
-|Publishes to| 'new_tweet.follower_ids' | `{tweet_id, [follower_id, ...]}`| Publishes payload as a representation of which followers' timelines need to add the new Tweet.
+|Publishes to| `new_tweet.follower_ids` | `{tweet_id, [follower_id, ...]}`| Publishes payload as a representation of which followers' timelines need to add the new Tweet.
 
 ## Caches
 
@@ -25,3 +25,7 @@ Production deployment: https://nano-twitter-follow-data.herokuapp.com/
 ### followee\_id: [follower\_handles]
 
 ## Routes
+
+## Seeding
+
+This service subscribes to the `follow.data.seed` queue, which the main NanoTwitter app uses to publish the user IDs and handles of every follower/followee pair, which this service then caches.

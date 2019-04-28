@@ -84,4 +84,16 @@ describe 'NanoTwitter' do
     msg_json['tweet_id'].must_equal 1
     msg_json['follower_ids'].sort.must_equal %w[2 3]
   end
+
+  it 'can seed multiple follows' do
+    payload = [@follow1, @follow2].to_json
+    RABBIT_EXCHANGE.publish(payload, routing_key: 'follow.data.seed')
+    sleep 3
+    get_list('1:follower_ids').must_equal %w[2 3]
+    get_list('1:follower_handles').must_equal %w[@brad @yang]
+    get_list('2:followee_ids').must_equal ['1']
+    get_list('2:followee_handles').must_equal ['@ari']
+    get_list('3:followee_ids').must_equal ['1']
+    get_list('3:followee_handles').must_equal ['@ari']
+  end
 end

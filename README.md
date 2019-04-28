@@ -8,26 +8,13 @@ Production deployment: https://nano-twitter-follow-data.herokuapp.com/
 [![Maintainability](https://api.codeclimate.com/v1/badges/030697af6f74243f7b2a/maintainability)](https://codeclimate.com/github/cosi105/follow_data/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/030697af6f74243f7b2a/test_coverage)](https://codeclimate.com/github/cosi105/follow_data/test_coverage)
 
-## Subscribed Queues
+## Message Queues
 
-### new\_follow.user\_data
-
-- follower_id
-- follower_handle
-- followee_id
-- followee_handle
-
-### new\_tweet.tweet\_data
-
-- author_id
-- tweet_id
-
-## Published Queues
-
-### new\_tweet.follower\_ids
-
-- tweet_id
-- follower_ids
+| Relation | Queue Name | Payload | Interaction |
+| :------- | :--------- | :------ |:--
+| Subscribes to | `new_follow.user_data` | `{follower_id, follower_handle, followee_id, followee_handle}` | Adds `follower_handle` & `follower_id` to followee's chached follower ids & handles.</br> Adds `followee_handle` & `followee_id` to follower's cached followee ids & handles.
+| Subscribes to | `new_tweet.tweet_data` | `{author_id, tweet_id}` | Uses `author_id` to fetch the list of the author's `follower_id`s, adds it to payload with the `tweet_id`, then publishes it to `new_tweet.follower_ids`.
+|Publishes to| 'new_tweet.follower_ids' | `{tweet_id, [follower_id, ...]}`| Publishes payload as a representation of which followers' timelines need to add the new Tweet.
 
 ## Caches
 

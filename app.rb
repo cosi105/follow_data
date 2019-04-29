@@ -11,8 +11,8 @@ end
 
 if Sinatra::Base.production?
   configure do
-    REDIS_FOLLOW_DATA = redis_from_uri('FOLLOW_DATA')
-    REDIS_FOLLOW_HTML = redis_from_uri('FOLLOW_HTML')
+    REDIS_FOLLOW_DATA = redis_from_uri('FOLLOW_DATA_URL')
+    REDIS_FOLLOW_HTML = redis_from_uri('FOLLOW_HTML_URL')
   end
   rabbit = Bunny.new(ENV['CLOUDAMQP_URL'])
 else

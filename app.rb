@@ -49,11 +49,11 @@ def parse_follow_data(body)
   followee_id = body['followee_id'].to_i
   REDIS_FOLLOW_DATA.lpush("#{followee_id}:follower_ids", follower_id)
   REDIS_FOLLOW_DATA.lpush("#{follower_id}:followee_ids", followee_id)
-  
+
   followee_handle = body['followee_handle']
   follower_handle = body['follower_handle']
-  REDIS_FOLLOW_HTML.set("#{follower_id}:followees", "<li>#{followee_handle}</li>#{REDIS_FOLLOW_HTML.get("#{follower_id}:followees")}")
-  REDIS_FOLLOW_HTML.set("#{followee_id}:followers", "<li>#{follower_handle}</li>#{REDIS_FOLLOW_HTML.get("#{followee_id}:followers")}")
+  REDIS_FOLLOW_HTML.lpush("#{follower_id}:followees", "<li>#{followee_handle}</li>")
+  REDIS_FOLLOW_HTML.lpush("#{followee_id}:followers", "<li>#{follower_handle}</li>")
 end
 
 def get_follower_ids(body)

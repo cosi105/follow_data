@@ -4,6 +4,11 @@ Bundler.require
 
 set :port, 8081 unless Sinatra::Base.production?
 
+def redis_from_uri(key)
+  uri = URI.parse(ENV[key])
+  Redis.new(host: uri.host, port: uri.port, password: uri.password)
+end
+
 if Sinatra::Base.production?
   configure do
     REDIS_FOLLOW_DATA = redis_from_uri('FOLLOW_DATA')
@@ -36,11 +41,6 @@ end
 seed.subscribe(block: false) do |delivery_info, properties, body|
   REDIS_FOLLOW_DATA.flushall
   JSON.parse(body).each { |follow| parse_follow_data(follow) }
-end
-
-def redis_from_uri(key)
-  uri = URI.parse(ENV[key])
-  Redis.new(host: uri.host, port: uri.port, password: uri.password)
 end
 
 def parse_follow_data(body)

@@ -35,7 +35,6 @@ end
 
 seed.subscribe(block: false) do |delivery_info, properties, body|
   REDIS_FOLLOW_DATA.flushall
-  REDIS_FOLLOW_HTML.flushall
   JSON.parse(body).each { |follow| parse_follow_data(follow) }
 end
 
@@ -54,6 +53,7 @@ def parse_follow_data(body)
   follower_handle = body['follower_handle']
   REDIS_FOLLOW_HTML.lpush("#{follower_id}:followees", "<li>#{followee_handle}</li>")
   REDIS_FOLLOW_HTML.lpush("#{followee_id}:followers", "<li>#{follower_handle}</li>")
+  puts "Parsed #{follower_handle} -> #{followee_handle}"
 end
 
 def get_follower_ids(body)

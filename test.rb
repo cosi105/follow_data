@@ -22,13 +22,13 @@ def publish_tweet(tweet)
 end
 
 def get_list(key)
-  REDIS.lrange(key, 0, -1).sort
+  REDIS_FOLLOW_DATA.lrange(key, 0, -1).sort
 end
 
 describe 'NanoTwitter' do
-  include Rack::Test::Methods
   before do
-    REDIS.flushall
+    REDIS_FOLLOW_DATA.flushall
+    REDIS_FOLLOW_HTML.flushall
     @follow1 = { followee_id: 1, followee_handle: '@ari', follower_id: 2, follower_handle: '@brad' }
     @follow2 = { followee_id: 1, followee_handle: '@ari', follower_id: 3, follower_handle: '@yang' }
     @tweet = { tweet_id: 1, author_id: 1 }
@@ -37,18 +37,18 @@ describe 'NanoTwitter' do
   it 'can cache information about a follow' do
     parse_follow_data JSON.parse @follow1.to_json
     get_list('1:follower_ids').must_equal ['2']
-    get_list('1:follower_handles').must_equal ['@brad']
     get_list('2:followee_ids').must_equal ['1']
-    get_list('2:followee_handles').must_equal ['@ari']
+    REDIS_FOLLOW_HTML.get('1:followers').must_equal '<li>@brad</li>'
+    REDIS_FOLLOW_HTML.get('2:followees').must_equal '<li>@ari</li>'
   end
 
   it 'can get a follow from queue' do
     publish_follow @follow1
     sleep 3
     get_list('1:follower_ids').must_equal ['2']
-    get_list('1:follower_handles').must_equal ['@brad']
     get_list('2:followee_ids').must_equal ['1']
-    get_list('2:followee_handles').must_equal ['@ari']
+    REDIS_FOLLOW_HTML.get('1:followers').must_equal '<li>@brad</li>'
+    REDIS_FOLLOW_HTML.get('2:followees').must_equal '<li>@ari</li>'
   end
 
   it 'can handle multiple follows' do
@@ -56,11 +56,11 @@ describe 'NanoTwitter' do
     publish_follow @follow2
     sleep 3
     get_list('1:follower_ids').must_equal %w[2 3]
-    get_list('1:follower_handles').must_equal %w[@brad @yang]
     get_list('2:followee_ids').must_equal ['1']
-    get_list('2:followee_handles').must_equal ['@ari']
     get_list('3:followee_ids').must_equal ['1']
-    get_list('3:followee_handles').must_equal ['@ari']
+    REDIS_FOLLOW_HTML.get('1:followers').must_equal '<li>@yang</li><li>@brad</li>'
+    REDIS_FOLLOW_HTML.get('2:followees').must_equal '<li>@ari</li>'
+    REDIS_FOLLOW_HTML.get('3:followees').must_equal '<li>@ari</li>'
   end
 
   it 'can identify tweet fanout targets' do
@@ -90,10 +90,10 @@ describe 'NanoTwitter' do
     RABBIT_EXCHANGE.publish(payload, routing_key: 'follow.data.seed')
     sleep 3
     get_list('1:follower_ids').must_equal %w[2 3]
-    get_list('1:follower_handles').must_equal %w[@brad @yang]
     get_list('2:followee_ids').must_equal ['1']
-    get_list('2:followee_handles').must_equal ['@ari']
     get_list('3:followee_ids').must_equal ['1']
-    get_list('3:followee_handles').must_equal ['@ari']
+    REDIS_FOLLOW_HTML.get('1:followers').must_equal '<li>@yang</li><li>@brad</li>'
+    REDIS_FOLLOW_HTML.get('2:followees').must_equal '<li>@ari</li>'
+    REDIS_FOLLOW_HTML.get('3:followees').must_equal '<li>@ari</li>'
   end
 end

@@ -6,12 +6,13 @@ set :port, 8081 unless Sinatra::Base.production?
 
 if Sinatra::Base.production?
   configure do
-    redis_uri = URI.parse(ENV['REDISCLOUD_URL'])
-    REDIS = Redis.new(host: redis_uri.host, port: redis_uri.port, password: redis_uri.password)
+    REDIS_FOLLOW_DATA = redis_from_uri('FOLLOW_DATA')
+    REDIS_FOLLOW_HTML = redis_from_uri('FOLLOW_HTML')
   end
   rabbit = Bunny.new(ENV['CLOUDAMQP_URL'])
 else
-  REDIS = Redis.new
+  REDIS_FOLLOW_DATA = Redis.new(port: 6385)
+  REDIS_FOLLOW_HTML = Redis.new(port: 6380)
   rabbit = Bunny.new(automatically_recover: false)
 end
 
@@ -33,21 +34,26 @@ new_tweet.subscribe(block: false) do |delivery_info, properties, body|
 end
 
 seed.subscribe(block: false) do |delivery_info, properties, body|
-  REDIS.flushall
+  REDIS_FOLLOW_DATA.flushall
+  REDIS_FOLLOW_HTML.flushall
   JSON.parse(body).each { |follow| parse_follow_data(follow) }
 end
 
+def redis_from_uri(key)
+  uri = URI.parse(ENV[key])
+  Redis.new(host: uri.host, port: uri.port, password: uri.password)
+end
+
 def parse_follow_data(body)
-  follower_id = body['follower_id']
-  follower_handle = body['follower_handle']
-  followee_id = body['followee_id']
+  follower_id = body['follower_id'].to_i
+  followee_id = body['followee_id'].to_i
+  REDIS_FOLLOW_DATA.lpush("#{followee_id}:follower_ids", follower_id)
+  REDIS_FOLLOW_DATA.lpush("#{follower_id}:followee_ids", followee_id)
+  
   followee_handle = body['followee_handle']
-
-  REDIS.lpush("#{followee_id}:follower_ids", follower_id)
-  REDIS.lpush("#{followee_id}:follower_handles", follower_handle)
-
-  REDIS.lpush("#{follower_id}:followee_ids", followee_id)
-  REDIS.lpush("#{follower_id}:followee_handles", followee_handle)
+  follower_handle = body['follower_handle']
+  REDIS_FOLLOW_HTML.set("#{follower_id}:followees", "<li>#{followee_handle}</li>#{REDIS_FOLLOW_HTML.get("#{follower_id}:followees")}")
+  REDIS_FOLLOW_HTML.set("#{followee_id}:followers", "<li>#{follower_handle}</li>#{REDIS_FOLLOW_HTML.get("#{followee_id}:followers")}")
 end
 
 def get_follower_ids(body)
@@ -56,7 +62,7 @@ def get_follower_ids(body)
 
   payload = {
     tweet_id: tweet_id,
-    follower_ids: REDIS.lrange("#{author_id}:follower_ids", 0, -1)
+    follower_ids: REDIS_FOLLOW_DATA.lrange("#{author_id}:follower_ids", 0, -1)
   }.to_json
   RABBIT_EXCHANGE.publish(payload, routing_key: FOLLOWER_IDS.name)
 end

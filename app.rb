@@ -1,3 +1,8 @@
+# FollowData Micro-Service (port 8081)
+# Caches:
+#   - FollowData (port 6385)
+#   - FollowHTML (port 6380)
+
 require 'bundler'
 require 'json'
 Bundler.require
@@ -20,7 +25,7 @@ rabbit.start
 channel = rabbit.create_channel
 RABBIT_EXCHANGE = channel.default_exchange
 
-new_follow = channel.queue('new_follow.user_data')
+new_follow = channel.queue('new_follow.data')
 new_tweet = channel.queue('new_tweet.tweet_data')
 seed = channel.queue('follow.data.seed')
 FOLLOWER_IDS = channel.queue('new_tweet.follower_ids')

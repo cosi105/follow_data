@@ -18,7 +18,7 @@ def publish_follow(follow)
 end
 
 def publish_tweet(tweet)
-  RABBIT_EXCHANGE.publish(tweet.to_json, routing_key: 'new_tweet.tweet_data')
+  RABBIT_EXCHANGE.publish(tweet.to_json, routing_key: 'new_tweet.follow.tweet_data')
 end
 
 def get_list(cache, key)

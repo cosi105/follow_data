@@ -31,7 +31,7 @@ channel = rabbit.create_channel
 RABBIT_EXCHANGE = channel.default_exchange
 
 new_follow = channel.queue('new_follow.data')
-new_tweet = channel.queue('new_tweet.tweet_data')
+new_tweet = channel.queue('new_tweet.follow.tweet_data')
 seed = channel.queue('follow.data.seed')
 FOLLOWER_IDS = channel.queue('new_tweet.follower_ids')
 

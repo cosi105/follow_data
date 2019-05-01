@@ -54,10 +54,13 @@ def parse_follow_data(body)
   REDIS_FOLLOW_DATA.lpush("#{followee_id}:follower_ids", follower_id)
   REDIS_FOLLOW_DATA.lpush("#{follower_id}:followee_ids", followee_id)
 
-  followee_handle = body['followee_handle']
-  follower_handle = body['follower_handle']
-  REDIS_FOLLOW_HTML.lpush("#{follower_id}:followees", "<li>#{followee_handle}</li>")
-  REDIS_FOLLOW_HTML.lpush("#{followee_id}:followers", "<li>#{follower_handle}</li>")
+  unless follower_id == followee_id
+    followee_handle = body['followee_handle']
+    follower_handle = body['follower_handle']
+    REDIS_FOLLOW_HTML.lpush("#{follower_id}:followees", "<li>#{followee_handle}</li>")
+    REDIS_FOLLOW_HTML.lpush("#{followee_id}:followers", "<li>#{follower_handle}</li>")
+  end
+  
   puts "Parsed #{follower_handle} -> #{followee_handle}"
 end
 

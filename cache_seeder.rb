@@ -17,5 +17,5 @@ def seed_from_csv(cache, url)
     values = line.drop(1)
     cache.rpush(key, values)
   end
-  puts "Cached!"
+  puts 'Cached!'
 end

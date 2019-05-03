@@ -26,6 +26,7 @@ def get_list(cache, key)
 end
 
 describe 'NanoTwitter' do
+  include Rack::Test::Methods
   before do
     REDIS_FOLLOW_DATA.flushall
     REDIS_FOLLOW_HTML.flushall
@@ -87,5 +88,35 @@ describe 'NanoTwitter' do
     msg_json.must_equal msg_json_2
     msg_json['tweet_id'].must_equal 1
     msg_json['follower_ids'].sort.must_equal %w[2 3]
+  end
+
+  it 'can seed from CSV' do
+    data = [['1:follower_ids', 2, 3], ['2:followee_ids', 1], ['3:followee_ids', 1]]
+    CSV.open('temp.csv', 'wb') { |csv| data.each { |row| csv << row}}
+    post '/seed/data', csv_url: './temp.csv'
+    File.delete('temp.csv')
+    REDIS_FOLLOW_DATA.lrange('1:follower_ids', 0, -1).must_equal %w[2 3]
+    REDIS_FOLLOW_DATA.lrange('2:followee_ids', 0, -1).must_equal ['1']
+    REDIS_FOLLOW_DATA.lrange('3:followee_ids', 0, -1).must_equal ['1']
+  end
+
+  it 'can seed data from CSV' do
+    data = [['1:follower_ids', 2, 3], ['2:followee_ids', 1], ['3:followee_ids', 1]]
+    CSV.open('temp.csv', 'wb') { |csv| data.each { |row| csv << row}}
+    post '/seed/data', csv_url: './temp.csv'
+    File.delete('temp.csv')
+    REDIS_FOLLOW_DATA.lrange('1:follower_ids', 0, -1).must_equal %w[2 3]
+    REDIS_FOLLOW_DATA.lrange('2:followee_ids', 0, -1).must_equal ['1']
+    REDIS_FOLLOW_DATA.lrange('3:followee_ids', 0, -1).must_equal ['1']
+  end
+
+  it 'can seed HTML from CSV' do
+    data = [%w[1:followers <li>@brad</li> <li>@yang</li>], %w[2:followees <li>@ari</li>], %w[3:followees <li>@ari</li>]]
+    CSV.open('temp.csv', 'wb') { |csv| data.each { |row| csv << row}}
+    post '/seed/html', csv_url: './temp.csv'
+    File.delete('temp.csv')
+    REDIS_FOLLOW_HTML.lrange('1:followers', 0, -1).must_equal %w[<li>@brad</li> <li>@yang</li>]
+    REDIS_FOLLOW_HTML.lrange('2:followees', 0, -1).must_equal ['<li>@ari</li>']
+    REDIS_FOLLOW_HTML.lrange('3:followees', 0, -1).must_equal ['<li>@ari</li>']
   end
 end

@@ -35,6 +35,7 @@ new_follow = channel.queue('new_follow.data')
 new_tweet = channel.queue('new_tweet.follow.tweet_data')
 FOLLOWER_IDS_TIMELINE_DATA = channel.queue('new_tweet.follower_ids.timeline_data')
 FOLLOWER_IDS_TIMELINE_HTML = channel.queue('new_tweet.follower_ids.timeline_html')
+cache_purge = channel.queue('cache.purge.follow_data')
 
 new_follow.subscribe(block: false) do |delivery_info, properties, body|
   parse_follow_data(JSON.parse(body))
@@ -43,6 +44,8 @@ end
 new_tweet.subscribe(block: false) do |delivery_info, properties, body|
   get_follower_ids(JSON.parse(body))
 end
+
+cache_purge.subscribe { REDIS_FOLLOW_DATA.flushall }
 
 def parse_follow_data(body)
   follower_id = body['follower_id'].to_i

@@ -6,6 +6,7 @@
 require 'bundler'
 require 'json'
 Bundler.require
+require './cache_seeder'
 
 set :port, 8081 unless Sinatra::Base.production?
 
@@ -32,8 +33,8 @@ RABBIT_EXCHANGE = channel.default_exchange
 
 new_follow = channel.queue('new_follow.data')
 new_tweet = channel.queue('new_tweet.follow.tweet_data')
-seed = channel.queue('follow.data.seed')
-FOLLOWER_IDS = channel.queue('new_tweet.follower_ids')
+FOLLOWER_IDS_TIMELINE_DATA = channel.queue('new_tweet.follower_ids.timeline_data')
+FOLLOWER_IDS_TIMELINE_HTML = channel.queue('new_tweet.follower_ids.timeline_html')
 
 new_follow.subscribe(block: false) do |delivery_info, properties, body|
   parse_follow_data(JSON.parse(body))
@@ -41,11 +42,6 @@ end
 
 new_tweet.subscribe(block: false) do |delivery_info, properties, body|
   get_follower_ids(JSON.parse(body))
-end
-
-seed.subscribe(block: false) do |delivery_info, properties, body|
-  REDIS_FOLLOW_DATA.flushall
-  JSON.parse(body).each { |follow| parse_follow_data(follow) }
 end
 
 def parse_follow_data(body)
@@ -60,7 +56,7 @@ def parse_follow_data(body)
     REDIS_FOLLOW_HTML.lpush("#{follower_id}:followees", "<li>#{followee_handle}</li>")
     REDIS_FOLLOW_HTML.lpush("#{followee_id}:followers", "<li>#{follower_handle}</li>")
   end
-  
+
   puts "Parsed #{follower_handle} -> #{followee_handle}"
 end
 
@@ -72,5 +68,5 @@ def get_follower_ids(body)
     tweet_id: tweet_id,
     follower_ids: REDIS_FOLLOW_DATA.lrange("#{author_id}:follower_ids", 0, -1)
   }.to_json
-  RABBIT_EXCHANGE.publish(payload, routing_key: FOLLOWER_IDS.name)
+  [FOLLOWER_IDS_TIMELINE_DATA, FOLLOWER_IDS_TIMELINE_HTML].each { |queue| RABBIT_EXCHANGE.publish(payload, routing_key: queue.name) }
 end

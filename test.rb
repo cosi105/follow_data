@@ -69,7 +69,9 @@ describe 'NanoTwitter' do
     sleep 3
     get_follower_ids JSON.parse(@tweet.to_json)
     sleep 3
-    msg_json = JSON.parse FOLLOWER_IDS.pop.last
+    msg_json = JSON.parse FOLLOWER_IDS_TIMELINE_DATA.pop.last
+    msg_json_2 = JSON.parse FOLLOWER_IDS_TIMELINE_HTML.pop.last
+    msg_json.must_equal msg_json_2
     msg_json['tweet_id'].must_equal 1
     msg_json['follower_ids'].sort.must_equal %w[2 3]
   end
@@ -80,20 +82,10 @@ describe 'NanoTwitter' do
     sleep 3
     publish_tweet @tweet
     sleep 3
-    msg_json = JSON.parse FOLLOWER_IDS.pop.last
+    msg_json = JSON.parse FOLLOWER_IDS_TIMELINE_DATA.pop.last
+    msg_json_2 = JSON.parse FOLLOWER_IDS_TIMELINE_HTML.pop.last
+    msg_json.must_equal msg_json_2
     msg_json['tweet_id'].must_equal 1
     msg_json['follower_ids'].sort.must_equal %w[2 3]
-  end
-
-  it 'can seed multiple follows' do
-    payload = [@follow1, @follow2].to_json
-    RABBIT_EXCHANGE.publish(payload, routing_key: 'follow.data.seed')
-    sleep 3
-    get_list(REDIS_FOLLOW_DATA, '1:follower_ids').must_equal %w[2 3]
-    get_list(REDIS_FOLLOW_DATA, '2:followee_ids').must_equal ['1']
-    get_list(REDIS_FOLLOW_DATA, '3:followee_ids').must_equal ['1']
-    get_list(REDIS_FOLLOW_HTML, '1:followers').sort.must_equal %w[<li>@brad</li> <li>@yang</li>]
-    get_list(REDIS_FOLLOW_HTML, '2:followees').must_equal ['<li>@ari</li>']
-    get_list(REDIS_FOLLOW_HTML, '3:followees').must_equal ['<li>@ari</li>']
   end
 end

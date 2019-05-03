@@ -39,8 +39,8 @@ describe 'NanoTwitter' do
     parse_follow_data JSON.parse @follow1.to_json
     get_list(REDIS_FOLLOW_DATA, '1:follower_ids').must_equal ['2']
     get_list(REDIS_FOLLOW_DATA, '2:followee_ids').must_equal ['1']
-    get_list(REDIS_FOLLOW_HTML, '1:followers').must_equal ['<li>@brad</li>']
-    get_list(REDIS_FOLLOW_HTML, '2:followees').must_equal ['<li>@ari</li>']
+    get_list(REDIS_FOLLOW_HTML, '1:followers').must_equal ['<div class="user-container">@brad</div>']
+    get_list(REDIS_FOLLOW_HTML, '2:followees').must_equal ['<div class="user-container">@ari</div>']
   end
 
   it 'can get a follow from queue' do
@@ -48,8 +48,8 @@ describe 'NanoTwitter' do
     sleep 3
     get_list(REDIS_FOLLOW_DATA, '1:follower_ids').must_equal ['2']
     get_list(REDIS_FOLLOW_DATA, '2:followee_ids').must_equal ['1']
-    get_list(REDIS_FOLLOW_HTML, '1:followers').must_equal ['<li>@brad</li>']
-    get_list(REDIS_FOLLOW_HTML, '2:followees').must_equal ['<li>@ari</li>']
+    get_list(REDIS_FOLLOW_HTML, '1:followers').must_equal ['<div class="user-container">@brad</div>']
+    get_list(REDIS_FOLLOW_HTML, '2:followees').must_equal ['<div class="user-container">@ari</div>']
   end
 
   it 'can handle multiple follows' do
@@ -59,9 +59,9 @@ describe 'NanoTwitter' do
     get_list(REDIS_FOLLOW_DATA, '1:follower_ids').must_equal %w[2 3]
     get_list(REDIS_FOLLOW_DATA, '2:followee_ids').must_equal ['1']
     get_list(REDIS_FOLLOW_DATA, '3:followee_ids').must_equal ['1']
-    get_list(REDIS_FOLLOW_HTML, '1:followers').sort.must_equal %w[<li>@brad</li> <li>@yang</li>]
-    get_list(REDIS_FOLLOW_HTML, '2:followees').must_equal ['<li>@ari</li>']
-    get_list(REDIS_FOLLOW_HTML, '3:followees').must_equal ['<li>@ari</li>']
+    get_list(REDIS_FOLLOW_HTML, '1:followers').sort.must_equal ['<div class="user-container">@brad</div>', '<div class="user-container">@yang</div>']
+    get_list(REDIS_FOLLOW_HTML, '2:followees').must_equal ['<div class="user-container">@ari</div>']
+    get_list(REDIS_FOLLOW_HTML, '3:followees').must_equal ['<div class="user-container">@ari</div>']
   end
 
   it 'can identify tweet fanout targets' do
@@ -111,12 +111,12 @@ describe 'NanoTwitter' do
   end
 
   it 'can seed HTML from CSV' do
-    data = [%w[1:followers <li>@brad</li> <li>@yang</li>], %w[2:followees <li>@ari</li>], %w[3:followees <li>@ari</li>]]
+    data = [['1:followers', '<div class="user-container">@brad</div>', '<div class="user-container">@yang</div>'], ['2:followees', '<div class="user-container">@ari</div>'], ['3:followees', '<div class="user-container">@ari</div>']]
     CSV.open('temp.csv', 'wb') { |csv| data.each { |row| csv << row}}
     post '/seed/html', csv_url: './temp.csv'
     File.delete('temp.csv')
-    REDIS_FOLLOW_HTML.lrange('1:followers', 0, -1).must_equal %w[<li>@brad</li> <li>@yang</li>]
-    REDIS_FOLLOW_HTML.lrange('2:followees', 0, -1).must_equal ['<li>@ari</li>']
-    REDIS_FOLLOW_HTML.lrange('3:followees', 0, -1).must_equal ['<li>@ari</li>']
+    REDIS_FOLLOW_HTML.lrange('1:followers', 0, -1).must_equal ['<div class="user-container">@brad</div>', '<div class="user-container">@yang</div>']
+    REDIS_FOLLOW_HTML.lrange('2:followees', 0, -1).must_equal ['<div class="user-container">@ari</div>']
+    REDIS_FOLLOW_HTML.lrange('3:followees', 0, -1).must_equal ['<div class="user-container">@ari</div>']
   end
 end

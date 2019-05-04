@@ -47,19 +47,32 @@ end
 
 cache_purge.subscribe { REDIS_FOLLOW_DATA.flushall }
 
+def handle_to_html(handle)
+  "<div class=\"user-container\">#{handle}</div>"
+end
+
 def parse_follow_data(body)
+  remove = body['remove']
   follower_id = body['follower_id'].to_i
   followee_id = body['followee_id'].to_i
-  REDIS_FOLLOW_DATA.lpush("#{followee_id}:follower_ids", follower_id)
-  REDIS_FOLLOW_DATA.lpush("#{follower_id}:followee_ids", followee_id)
+  followee_handle = body['followee_handle']
+  follower_handle = body['follower_handle']
 
-  unless follower_id == followee_id
-    followee_handle = body['followee_handle']
-    follower_handle = body['follower_handle']
-    REDIS_FOLLOW_HTML.lpush("#{follower_id}:followees", "<div class=\"user-container\">#{followee_handle}</div>")
-    REDIS_FOLLOW_HTML.lpush("#{followee_id}:followers", "<div class=\"user-container\">#{follower_handle}</div>")
+  if remove
+    REDIS_FOLLOW_DATA.lrem("#{follower_id}:followee_ids", 0, followee_id)
+    REDIS_FOLLOW_DATA.lrem("#{followee_id}:follower_ids", 0, follower_id)
+    unless follower_id == followee_id
+      REDIS_FOLLOW_HTML.lrem("#{follower_id}:followees", 0, handle_to_html(followee_handle))
+      REDIS_FOLLOW_HTML.lrem("#{followee_id}:followers", 0, handle_to_html(follower_handle))
+    end
+  else
+    REDIS_FOLLOW_DATA.lpush("#{followee_id}:follower_ids", follower_id)
+    REDIS_FOLLOW_DATA.lpush("#{follower_id}:followee_ids", followee_id)
+    unless follower_id == followee_id
+      REDIS_FOLLOW_HTML.lpush("#{follower_id}:followees", handle_to_html(followee_handle))
+      REDIS_FOLLOW_HTML.lpush("#{followee_id}:followers", handle_to_html(follower_handle))
+    end
   end
-
   puts "Parsed #{follower_handle} -> #{followee_handle}"
 end
 
